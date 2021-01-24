@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app">
+    <div v-if="isShow">
+      <input type="text" placeholder="请输入用户名" v-model="name">
+      <button @click='enter'>进入聊天室</button>
+    </div>
+    <div v-else>
+      <ul>
+        <li v-for="(item,index) in lists" :key="'message'+index">{{item}}</li>
+        <li>当前人数:{{num}}</li>
+      </ul>
+      <input type="text" id="msg" v-model='message'>
+      <button type="button" id="send" @click="send()">按钮</button>
+      <button type="button" id="close" @click="close()">关闭</button>
+    </div>
+  </div>
+  <script>
+    var app = new Vue({
+      el: "#app",
+      data: {
+        isShow: true,
+        message: '',
+        lists: [],
+        ws: {},
+        name: '',
+        num: 0
+      },
+      mounted() {
+        this.ws = new WebSocket('ws://127.0.0.1:3000')
+        this.ws.onopen = this.onOpen
+        this.ws.onmessage = this.onmessage
+        this.ws.onerror = this.onError
+        this.ws.onclose = this.onClose
+      },
+      methods: {
+        enter: function () {
+          if (this.name.trim() === '') {
+            alert("用户名不得为空!")
+            return
+          }
+          this.isShow = false
+          this.ws.send(JSON.stringify({ event: 'enter', message: this.name }))
+        },
+        onOpen: function () {
+          console.log('open:' + this.ws.readyState)
+        },
+        onmessage: function (event) {
+          const obj = JSON.parse(event.data)
+          this.num = obj.num
+          if (obj.event === 'enter') {
+            this.lists.push('欢迎：' + obj.message + '加入聊天室')
+          } else if (obj.event === 'out') {
+            this.lists.push(obj.name + "退出聊天室")
+          } else {
+            // 自己发布的信息自己不可见
+            if (this.name !== obj.name) {
+              this.lists.push(obj.name + ":" + obj.message)
+            }
+          }
+
+        },
+        onError: function () {
+          console.log('error:' + this.ws.readyState)
+          console.log('websocket链接失败')
+        },
+        onClose: function () {
+          console.log('close：' + this.ws.readyState)
+          console.log('已关闭websocket')
+        },
+        send: function () {
+          this.lists.push(this.name + ":" + this.message);
+          this.ws.send(JSON.stringify({ event: "message", message: this.message, name: this.name }))
+          this.message = ''
+        },
+        close: function () {
+          this.onClose()
+        }
+      },
+    })
+
+
+  </script>
+</body>
+
+</html>
