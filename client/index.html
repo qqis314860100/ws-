@@ -11,13 +11,15 @@
 <body>
   <div id="app">
     <div v-if="isShow">
-      <input type="text" placeholder="请输入用户名" v-model="name">
+      <input type="text" placeholder="请输入用户名" v-model="name"><br>
+      <input type="text" placeholder="请输入聊天室号码" v-model="roomid"><br>
       <button @click='enter'>进入聊天室</button>
     </div>
     <div v-else>
       <ul>
         <li v-for="(item,index) in lists" :key="'message'+index">{{item}}</li>
         <li>当前人数:{{num}}</li>
+        <li>当前聊天室号码:{{roomid}}</li>
       </ul>
       <input type="text" id="msg" v-model='message'>
       <button type="button" id="send" @click="send()">按钮</button>
@@ -33,7 +35,8 @@
         lists: [],
         ws: {},
         name: '',
-        num: 0
+        num: 0,
+        roomid: ''
       },
       mounted() {
         this.ws = new WebSocket('ws://127.0.0.1:3000')
@@ -44,12 +47,16 @@
       },
       methods: {
         enter: function () {
-          if (this.name.trim() === '') {
-            alert("用户名不得为空!")
+          if (this.name.trim() === '' || this.roomid.trim() === '') {
+            alert("用户名或者聊天室不得为空!")
             return
           }
           this.isShow = false
-          this.ws.send(JSON.stringify({ event: 'enter', message: this.name }))
+          this.ws.send(JSON.stringify({
+            event: 'enter',
+            message: this.name,
+            roomid: this.roomid
+          }))
         },
         onOpen: function () {
           console.log('open:' + this.ws.readyState)
@@ -79,7 +86,12 @@
         },
         send: function () {
           this.lists.push(this.name + ":" + this.message);
-          this.ws.send(JSON.stringify({ event: "message", message: this.message, name: this.name }))
+          this.ws.send(JSON.stringify({
+            event: "message",
+            message: this.message,
+            name: this.name,
+            roomid: this.roomid
+          }))
           this.message = ''
         },
         close: function () {
